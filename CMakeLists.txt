@@ -13,6 +13,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 # set module path
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
+add_subdirectory(3rdparty)
+
 file(GLOB_RECURSE ALL_SOURCE ${PROJECT_SOURCE_DIR}/src/*.cpp)
 set(SOURCE ${ALL_SOURCE})
 list(FILTER SOURCE EXCLUDE REGEX "${PROJECT_SOURCE_DIR}/src/Interface/.*\.cpp")
@@ -153,3 +155,7 @@ else()
     find_package(PROPACK REQUIRED COMPONENTS DOUBLE_LIB)
 endif()
 target_link_libraries(OptSuite PROPACK::Double -lgfortran)
+
+
+enable_testing()
+add_subdirectory(unittest)
