@@ -126,7 +126,7 @@ namespace OptSuite { namespace Base {
             return (*this)(*x_ptr_f);
     }
 
-    void ShrinkageL1::operator()(const Ref<const mat_t> x, Scalar t, Ref<mat_t> y){
+    void ShrinkageL1::operator()(const Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
         y.array() = x.array().sign() * (x.array().abs() - t * mu).max(0);
     }
 
@@ -135,9 +135,13 @@ namespace OptSuite { namespace Base {
         y.array()     = x.array() * std::max(0_s, lambda);
     }
 
-    void ShrinkageL2Rowwise::operator()(const Ref<const mat_t> x, Scalar t, Ref<mat_t> y){
+    void ShrinkageL0::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
+        y.array() = x.array() * (x.array().pow(2) > 2_s * t * mu_).cast<Scalar>().array();
+    }
+
+    void ShrinkageL2Rowwise::operator()(const Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
         lambda = 1 - t * mu / x.rowwise().norm().array();
-        y = x.array().colwise() * lambda.array().max(0);
+        y      = x.array().colwise() * lambda.array().max(0);
     }
 
     Index ShrinkageNuclear::compute_rank() const {
@@ -224,8 +228,7 @@ namespace OptSuite { namespace Base {
                 x_tmp.mat() -= tau * gp_ptr_s->spmat();
             }
             (*this)(x_tmp.mat(), v, x_ptr->mat());
-        }
-        else if (is_factor_x && is_sparse_g){
+        } else if (is_factor_x && is_sparse_g) {
             (*this)(*xp_ptr_f, tau, *gp_ptr_s, v, *x_ptr_f);
         }
     }
@@ -264,7 +267,7 @@ namespace OptSuite { namespace Base {
     }
 
     template<typename dtype>
-    Scalar FuncGrad<dtype>::operator()(const Ref<const mat_t>, Ref<mat_t>, bool){
+    Scalar FuncGrad<dtype>::operator()(const Ref<const mat_t>, Ref<mat_t>, bool) {
         OPTSUITE_ASSERT(0);
         return 0;
     }
