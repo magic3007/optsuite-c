@@ -130,9 +130,9 @@ namespace OptSuite { namespace Base {
         y.array() = x.array().sign() * (x.array().abs() - t * mu).max(0);
     }
 
-    void ShrinkageL2::operator()(const Ref<const mat_t> x, Scalar t, Ref<mat_t> y){
+    void ShrinkageL2::operator()(const Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
         Scalar lambda = 1 - t * mu / x.norm();
-        y.array() = std::max(0_s, lambda);
+        y.array()     = x.array() * std::max(0_s, lambda);
     }
 
     void ShrinkageL2Rowwise::operator()(const Ref<const mat_t> x, Scalar t, Ref<mat_t> y){
