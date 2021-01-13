@@ -230,14 +230,36 @@ namespace OptSuite { namespace Base {
         }
     }
 
-    Scalar ShrinkageNuclear::cached_objective() const {
-        return mu * d.array().sum();
-    }
-
+    Scalar ShrinkageNuclear::cached_objective() const { return mu * d.array().sum(); }
 
     template<typename dtype>
-    Scalar FuncGrad<dtype>::operator()(const Ref<const mat_t> x){
-        mat_t dummy_y;
+    void L0NormBallProj<dtype>::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y){
+        OPTSUITE_ASSERT(x.cols() == 1);
+        SparseIndex count = std::floor(t * mu_);
+        std::vector<SparseIndex> indexes(x.rows());
+        std::iota(indexes.begin(), indexes.end(), 0);
+        std::sort(indexes.begin(), indexes.end(), [&x](SparseIndex a, SparseIndex b){
+            return std::fabs(x[a]) > std::fabs(x[b]);
+        });
+        y = x;
+        for(SparseIndex i = count; i < indexes.size(); i++){
+            y[indexes[i]] = 0;
+        }
+    }
+
+    template<typename dtype>
+    void L2NormBallProj<dtype>::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
+        y = x.array() * (t * mu_ / std::max(t * mu_, x.norm()));
+    }
+
+    template<typename dtype>
+    void LInfBallProj<dtype>::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
+        y = x.array().sgn() * std::max(x.array().abs(), t * mu_);
+    }
+
+    template<typename dtype>
+    Scalar FuncGrad<dtype>::operator()(const Ref<const mat_t> x) {
+        mat_t        dummy_y;
         return this->operator()(x, dummy_y, false);
     }
 

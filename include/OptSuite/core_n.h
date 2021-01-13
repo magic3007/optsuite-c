@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <complex>
+#include <numeric>
 #include <limits>
 #include "core_macro_n.h"
 

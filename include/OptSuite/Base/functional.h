@@ -136,56 +136,121 @@ namespace OptSuite { namespace Base {
         using typename Proximal<dtype>::mat_t;
         using typename Proximal<dtype>::mat_array_t;
         using typename Proximal<dtype>::mat_wrapper_t;
-        public:
-            IdentityProx() = default;
-            ~IdentityProx() = default;
 
-            void operator()(const Ref<const mat_t> x, dtype, Ref<mat_t> y){
-                // simple copy
-                y = x;
-            }
+    public:
+        IdentityProx()  = default;
+        ~IdentityProx() = default;
 
-            void operator()(const Variable<dtype>& xp, Scalar tau, const Variable<dtype>& gp,
-                            Scalar, Variable<dtype>& x){
-                const mat_wrapper_t* xp_ptr = dynamic_cast<const mat_wrapper_t*>(&xp);
-                const mat_wrapper_t* gp_ptr = dynamic_cast<const mat_wrapper_t*>(&gp);
-                      mat_wrapper_t*  x_ptr = dynamic_cast<mat_wrapper_t*>(&x);
+        void operator()(const Ref<const mat_t> x, dtype, Ref<mat_t> y) {
+            // simple copy
+            y = x;
+        }
 
-                OPTSUITE_ASSERT(xp_ptr || gp_ptr || x_ptr);
-                x_ptr->mat() = xp_ptr->mat() - tau * gp_ptr->mat();
-            }
-            bool is_identity() const { return true; }
+        void operator()(const Variable<dtype> &xp, Scalar tau, const Variable<dtype> &gp, Scalar,
+                        Variable<dtype> &x) {
+            const mat_wrapper_t *xp_ptr = dynamic_cast<const mat_wrapper_t *>(&xp);
+            const mat_wrapper_t *gp_ptr = dynamic_cast<const mat_wrapper_t *>(&gp);
+            mat_wrapper_t *      x_ptr  = dynamic_cast<mat_wrapper_t *>(&x);
+
+            OPTSUITE_ASSERT(xp_ptr || gp_ptr || x_ptr);
+            x_ptr->mat() = xp_ptr->mat() - tau * gp_ptr->mat();
+        }
+        bool is_identity() const { return true; }
+    };
+
+//    template<typename dtype>
+//    class L1NormBallProj : public Proximal<dtype> {
+//        using typename Proximal<dtype>::mat_t;
+//
+//    public:
+//        L1NormBallProj(Scalar mu) : mu_(mu) {}
+//        ~L1NormBallProj() = default;
+//
+//        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+//
+//    private:
+//        Scalar mu_;
+//    };
+
+    template<typename dtype>
+    class L0NormBallProj : public Proximal<dtype> {
+        using typename Proximal<dtype>::mat_t;
+        explicit L0NormBallProj(Scalar mu) : mu_(mu) {}
+        ~L0NormBallProj() = default;
+        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+
+    private:
+        Scalar mu_;
+    };
+
+    template<typename dtype>
+    class L2NormBallProj : public Proximal<dtype> {
+        using typename Proximal<dtype>::mat_t;
+
+    public:
+        explicit L2NormBallProj(Scalar mu) : mu_(mu) {}
+        ~L2NormBallProj() = default;
+
+        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+
+    private:
+        Scalar mu_;
+    };
+
+
+    template<typename dtype>
+    class LInfBallProj : public Proximal<dtype> {
+        using typename Proximal<dtype>::mat_t;
+
+    public:
+        explicit LInfBallProj(Scalar mu) : mu_(mu) {}
+        ~LInfBallProj() = default;
+        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+
+    private:
+        Scalar mu_;
     };
 
     class ShrinkageL1 : public Proximal<Scalar> {
-        public:
-            inline ShrinkageL1(Scalar mu_ = 1) : mu(mu_) {}
-            ~ShrinkageL1() = default;
+    public:
+        inline ShrinkageL1(Scalar mu_ = 1) : mu(mu_) {}
+        ~ShrinkageL1() = default;
 
-            void operator()(const Ref<const mat_t>, Scalar, Ref<mat_t>);
+        void operator()(const Ref<const mat_t>, Scalar, Ref<mat_t>);
 
-            Scalar mu;
+        Scalar mu;
     };
 
     class ShrinkageL2 : public Proximal<Scalar> {
-        public:
-            inline ShrinkageL2(Scalar mu_ = 1) : mu(mu_) {}
-            ~ShrinkageL2() = default;
-            
-            void operator()(const Ref<const mat_t>, Scalar, Ref<mat_t>);
-            Scalar mu;
+    public:
+        inline ShrinkageL2(Scalar mu_ = 1) : mu(mu_) {}
+        ~ShrinkageL2() = default;
+
+        void   operator()(const Ref<const mat_t>, Scalar, Ref<mat_t>);
+        Scalar mu;
+    };
+
+    class ShrinkageL0 : public Proximal<Scalar> {
+    public:
+        ShrinkageL0(Scalar mu = 1) : mu_(mu) {}
+        ~ShrinkageL0() = default;
+        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+
+    private:
+        Scalar mu_;
     };
 
     class ShrinkageL2Rowwise : public Proximal<Scalar> {
         using vec_t = Vec;
         vec_t lambda;
-        public:
-            inline ShrinkageL2Rowwise(Scalar mu_ = 1) : mu(mu_) {}
-            ~ShrinkageL2Rowwise() = default;
 
-            void operator()(const Ref<const mat_t>, Scalar, Ref<mat_t>);
+    public:
+        inline ShrinkageL2Rowwise(Scalar mu_ = 1) : mu(mu_) {}
+        ~ShrinkageL2Rowwise() = default;
 
-            Scalar mu;
+        void operator()(const Ref<const mat_t>, Scalar, Ref<mat_t>);
+
+        Scalar mu;
     };
 
     class ShrinkageNuclear : public Proximal<Scalar> {
@@ -287,20 +352,19 @@ namespace OptSuite { namespace Base {
 
         ~ProjectionOmega() = default;
 
-            Scalar operator()(const Ref<const mat_t>, Ref<mat_t>, bool = true);
-            Scalar operator()(const var_t&, var_t&, bool = true);
-            
-        private:
-            void projection(const Ref<const mat_t>);
-            void projection(const fmat_t&);
-            std::vector<SparseIndex> outerIndexPtr;
-            std::vector<SparseIndex> innerIndexPtr;
-            mat_t b;
-            mat_t r;
+        Scalar operator()(const Ref<const mat_t>, Ref<mat_t>, bool = true);
+        Scalar operator()(const var_t &, var_t &, bool = true);
 
+    private:
+        void                     projection(const Ref<const mat_t>);
+        void                     projection(const fmat_t &);
+        std::vector<SparseIndex> outerIndexPtr;
+        std::vector<SparseIndex> innerIndexPtr;
+        mat_t                    b;
+        mat_t                    r;
     };
 
-}}
+    }   // namespace Base
+    }   // namespace OptSuite
 
 #endif
-
