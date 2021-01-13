@@ -4,7 +4,6 @@
  */
 #include "OptSuite/Base/functional.h"
 #include "OptSuite/LinAlg/rng_wrapper.h"
-#include "OptSuite/core_n.h"
 #include "gtest/gtest.h"
 
 namespace {
@@ -38,7 +37,25 @@ protected:
     AxmbNormSqr<Scalar> *functor_;
 };
 
-TEST_P(AxmbNormSqrTest, Forward) {
+class LogisticRegressionTest : public TestWithParam<std::tuple<int32_t, int32_t>> {
+protected:
+    void SetUp() override {
+        int32_t m, n;
+        std::tie(m, n) = GetParam();
+        A              = randn(n, m);
+        b              = randn(m, 1);
+        x              = randn(n, 1);
+        functor        = new LogisticRegression<Scalar>(A, b);
+    }
+    void TearDown() {
+        delete functor;
+        functor = nullptr;
+    };
+    Mat                         A, x, b;
+    LogisticRegression<Scalar> *functor;
+};
+
+TEST_P(AxmbNormSqrTest, ForwardAndBackWard) {
     Mat    grad_x        = Mat(x_.rows(), x_.cols());
     Scalar y             = (*functor_)(x_, grad_x, /* grad */ true);
     Mat    r             = A_ * x_ - b_;
@@ -48,6 +65,15 @@ TEST_P(AxmbNormSqrTest, Forward) {
     EXPECT_TRUE(grad_x_ground.isApprox(grad_x));
 }
 
+TEST_P(LogisticRegressionTest, ForwardAndBackWard) {
+    Mat    grad_x = Mat(x.rows(), x.cols());
+    Scalar y      = (*functor)(x, grad_x, true);
+//    std::cout << y << std::endl;
+//    std::cout << grad_x.squaredNorm() << std::endl;
+}
+
 INSTANTIATE_TEST_SUITE_P(XIsMat, AxmbNormSqrTest, Combine(Values(512), Values(256), Values(1, 2)));
+
+INSTANTIATE_TEST_SUITE_P(XIsMat, LogisticRegressionTest, Combine(Values(512), Values(256)));
 
 }   // namespace

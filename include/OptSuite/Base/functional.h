@@ -243,9 +243,10 @@ namespace OptSuite { namespace Base {
             AxmbNormSqr(const Ref<const mat_t>, const Ref<const mat_t>);
             ~AxmbNormSqr() = default;
 
-            Scalar operator()(const Ref<const mat_t>, Ref<mat_t>, bool = true);
-            const mat_t& get_A() const;
-            const mat_t& get_b() const;
+            Scalar       operator()(const Ref<const mat_t>, Ref<mat_t>, bool = true);
+            const mat_t &get_A() const;
+            const mat_t &get_b() const;
+
         private:
             mat_t A;
             mat_t b;
@@ -253,16 +254,38 @@ namespace OptSuite { namespace Base {
     };
 
     template<typename dtype = Scalar>
+    class LogisticRegression : public FuncGrad<dtype> {
+        using typename FuncGrad<dtype>::mat_wrapper_t;
+        using typename FuncGrad<dtype>::mat_t;
+        using col_vec_t = Eigen::Matrix<dtype, Dynamic, 1>;
+
+    public:
+        LogisticRegression(Ref<const mat_t>, Ref<const mat_t>);
+        ~LogisticRegression() = default;
+
+        Scalar operator()(Ref<const mat_t>, Ref<mat_t>, bool = true);
+
+        const mat_t &    get_A() const { return A_; }
+        const col_vec_t &get_b() const { return b_; }
+
+    private:
+        mat_t     A_;
+        col_vec_t b_;
+        mat_t     mbA_;
+    };
+
+    template<typename dtype = Scalar>
     class ProjectionOmega : public FuncGrad<dtype> {
         using typename FuncGrad<dtype>::mat_t;
         using spmat_t = Eigen::SparseMatrix<dtype, ColMajor, SparseIndex>;
-        using var_t = Variable<dtype>;
-        using fmat_t = FactorizedMat<dtype>;
-        public:
-            // construction by referencing a sparse object
-            ProjectionOmega(const Ref<const spmat_t>, const Ref<const mat_t>);
+        using var_t   = Variable<dtype>;
+        using fmat_t  = FactorizedMat<dtype>;
 
-            ~ProjectionOmega() = default;
+    public:
+        // construction by referencing a sparse object
+        ProjectionOmega(const Ref<const spmat_t>, const Ref<const mat_t>);
+
+        ~ProjectionOmega() = default;
 
             Scalar operator()(const Ref<const mat_t>, Ref<mat_t>, bool = true);
             Scalar operator()(const var_t&, var_t&, bool = true);

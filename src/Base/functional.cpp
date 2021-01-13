@@ -3,7 +3,7 @@
  *
  *       Filename:  functional.cpp
  *
- *    Description: 
+ *    Description:
  *
  *        Version:  1.0
  *        Created:  11/14/2020 07:02:35 PM
@@ -161,7 +161,7 @@ namespace OptSuite { namespace Base {
         const mat_t& V = svd.matrixV();
 
         d.array() = (sv.array() - t * mu).max(0);
-        
+
         Index rank = compute_rank();
         if (rank == 0)
             y = mat_t::Zero(x.rows(), x.cols());
@@ -233,7 +233,7 @@ namespace OptSuite { namespace Base {
     Scalar ShrinkageNuclear::cached_objective() const {
         return mu * d.array().sum();
     }
-    
+
 
     template<typename dtype>
     Scalar FuncGrad<dtype>::operator()(const Ref<const mat_t> x){
@@ -300,10 +300,9 @@ namespace OptSuite { namespace Base {
 
     template<typename dtype>
     Scalar AxmbNormSqr<dtype>::operator()(const Ref<const mat_t> x, Ref<mat_t> y, bool compute_grad){
-        r = A * x - b;
+        r.noalias() = A * x - b;
         Scalar fun = 0.5 * r.squaredNorm();
-        if (compute_grad)
-            y = A.transpose() * r;
+        if (compute_grad) y.noalias() = A.transpose() * r;
         return fun;
     }
 
@@ -313,7 +312,7 @@ namespace OptSuite { namespace Base {
     }
 
     template<typename dtype>
-    const typename AxmbNormSqr<dtype>::mat_t& AxmbNormSqr<dtype>::get_b() const {
+    const typename AxmbNormSqr<dtype>::mat_t &AxmbNormSqr<dtype>::get_b() const {
         return b;
     }
 
@@ -322,14 +321,42 @@ namespace OptSuite { namespace Base {
     template class AxmbNormSqr<ComplexScalar>;
 
     template<typename dtype>
-    ProjectionOmega<dtype>::ProjectionOmega(const Ref<const spmat_t> ref, const Ref<const mat_t> b_){
+    LogisticRegression<dtype>::LogisticRegression(Ref<const mat_t> A, Ref<const mat_t> b)
+        : A_(A), b_(b) {
+        OPTSUITE_ASSERT(b.cols() == 1);
+        OPTSUITE_ASSERT(b.rows() == A.cols());
+        mbA_ = A_.array().rowwise() * (- b_.transpose().array());
+    }
+
+    template<typename dtype>
+    Scalar LogisticRegression<dtype>::operator()(Ref<const mat_t> x, Ref<mat_t> y,
+                                                 bool compute_grad) {
+        OPTSUITE_ASSERT(x.cols() == 1);
+        OPTSUITE_ASSERT(x.rows() == A_.rows());
+        col_vec_t t   = mbA_.transpose() * x;
+        col_vec_t p   = t.array().exp();
+        col_vec_t q   = p.array() + 1;
+        col_vec_t r   = q.array().log();
+        Scalar    fun = r.mean();
+        if (compute_grad) {
+            col_vec_t s = p.array() / q.array();
+            mat_t     u = mbA_.array().rowwise() * s.transpose().array();
+            y           = u.array().rowwise().mean();
+        }
+        return fun;
+    }
+    template class LogisticRegression<Scalar>;
+
+    template<typename dtype>
+    ProjectionOmega<dtype>::ProjectionOmega(const Ref<const spmat_t> ref,
+                                            const Ref<const mat_t>   b_) {
         outerIndexPtr.resize(ref.cols() + 1_i);
         innerIndexPtr.resize(ref.nonZeros());
 
         std::memcpy(outerIndexPtr.data(), ref.outerIndexPtr(),
-                sizeof(SparseIndex) * outerIndexPtr.size());
+                    sizeof(SparseIndex) * outerIndexPtr.size());
         std::memcpy(innerIndexPtr.data(), ref.innerIndexPtr(),
-                sizeof(SparseIndex) * innerIndexPtr.size());
+                    sizeof(SparseIndex) * innerIndexPtr.size());
 
         b = b_;
     }
@@ -374,7 +401,7 @@ namespace OptSuite { namespace Base {
 
             r -= b;
             Scalar fun = 0.5_s * r.squaredNorm();
-            
+
             // compute gradient
             // note: the gradient is sparse
             if (compute_grad){
@@ -393,19 +420,19 @@ namespace OptSuite { namespace Base {
     }
 
     template<typename dtype>
-    void ProjectionOmega<dtype>::projection(const Ref<const mat_t> x){
+    void ProjectionOmega<dtype>::projection(const Ref<const mat_t> x) {
         r.resize(b.rows(), 1);
         SparseIndex *outer_ptr = outerIndexPtr.data();
         SparseIndex *inner_ptr = innerIndexPtr.data();
-        Scalar *r_ptr = r.data();
+        Scalar *     r_ptr     = r.data();
 
-        for (size_t i = 0; i < outerIndexPtr.size() - 1; ++i){
-            for (Index j = outer_ptr[i]; j < outer_ptr[i+1]; ++j){
-                *r_ptr++ = x(inner_ptr[j], i); // for colmajor 
+        for (size_t i = 0; i < outerIndexPtr.size() - 1; ++i) {
+            for (Index j = outer_ptr[i]; j < outer_ptr[i + 1]; ++j) {
+                *r_ptr++ = x(inner_ptr[j], i);   // for colmajor
             }
         }
     }
-    
+
     template<typename dtype>
     void ProjectionOmega<dtype>::projection(const fmat_t& x){
         r.resize(b.rows(), 1);
