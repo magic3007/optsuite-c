@@ -235,15 +235,41 @@ namespace OptSuite { namespace Base {
 
     Scalar ShrinkageNuclear::cached_objective() const { return mu * d.array().sum(); }
 
+
     template<typename dtype>
-    void L0NormBallProj<dtype>::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y){
+    void L1NormBallProj<dtype>::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
         OPTSUITE_ASSERT(x.cols() == 1);
-        SparseIndex count = std::floor(t * mu_);
+        dtype l1_norm = x.template lpNorm<1>();
+        if (l1_norm <= t * mu_) {
+            y = x;
+            return;
+        }
         std::vector<SparseIndex> indexes(x.rows());
         std::iota(indexes.begin(), indexes.end(), 0);
-        std::sort(indexes.begin(), indexes.end(), [&x](SparseIndex a, SparseIndex b){
-            return std::fabs(x[a]) > std::fabs(x[b]);
-        });
+        std::sort(indexes.begin(), indexes.end(),
+                  [&x](SparseIndex a, SparseIndex b) { return std::fabs(x[a]) > std::fabs(x[b]); });
+        bool  root_found = false;
+        dtype prefix_sum = 0, lambda;
+        for (SparseIndex i = 0; i < indexes.size(); i++) {
+            prefix_sum += indexes[i];
+            lambda = (prefix_sum - t * mu_) / (i + 1);
+            if (lambda <= indexes[i] && (i + 1 == indexes.size() || indexes[i + 1] <= lambda)) {
+                root_found = true;
+                break;
+            }
+        }
+        OPTSUITE_ASSERT(root_found);
+        y = x.array().sgn() * (x.array().abs() - lambda).max(0_s);
+    }
+
+    template<typename dtype>
+    void L0NormBallProj<dtype>::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
+        OPTSUITE_ASSERT(x.cols() == 1);
+        SparseIndex              count = std::floor(t * mu_);
+        std::vector<SparseIndex> indexes(x.rows());
+        std::iota(indexes.begin(), indexes.end(), 0);
+        std::sort(indexes.begin(), indexes.end(),
+                  [&x](SparseIndex a, SparseIndex b) { return std::fabs(x[a]) > std::fabs(x[b]); });
         y = x;
         for(SparseIndex i = count; i < indexes.size(); i++){
             y[indexes[i]] = 0;

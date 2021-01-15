@@ -158,19 +158,19 @@ namespace OptSuite { namespace Base {
         bool is_identity() const { return true; }
     };
 
-//    template<typename dtype>
-//    class L1NormBallProj : public Proximal<dtype> {
-//        using typename Proximal<dtype>::mat_t;
-//
-//    public:
-//        L1NormBallProj(Scalar mu) : mu_(mu) {}
-//        ~L1NormBallProj() = default;
-//
-//        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
-//
-//    private:
-//        Scalar mu_;
-//    };
+    template<typename dtype>
+    class L1NormBallProj : public Proximal<dtype> {
+        using typename Proximal<dtype>::mat_t;
+
+    public:
+        explicit L1NormBallProj(Scalar mu) : mu_(mu) {}
+        ~L1NormBallProj() = default;
+
+        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+
+    private:
+        Scalar mu_;
+    };
 
     template<typename dtype>
     class L0NormBallProj : public Proximal<dtype> {
