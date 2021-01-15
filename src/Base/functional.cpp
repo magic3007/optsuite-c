@@ -91,39 +91,41 @@ namespace OptSuite { namespace Base {
     }
 
 
-    Scalar L2Norm::operator()(const Ref<const mat_t> x){
-        return mu * x.norm();
-    }
+    Scalar L2Norm::operator()(const Ref<const mat_t> x) { return mu * x.norm(); }
 
-    Scalar L1_2Norm::operator()(const Ref<const mat_t> x){
-        return mu * x.rowwise().norm().sum();
-    }
+    Scalar L1_2Norm::operator()(const Ref<const mat_t> x) { return mu * x.rowwise().norm().sum(); }
 
-    Scalar NuclearNorm::operator()(const Ref<const mat_t> x){
+    Scalar NuclearNorm::operator()(const Ref<const mat_t> x) {
         using Eigen::DecompositionOptions;
         svd.compute(x);
         return mu * svd.singularValues().sum();
     }
 
-    Scalar NuclearNorm::operator()(const fmat_t& x){
-        Index r = x.rank();
-        Mat R_U = qr.compute(x.U()).matrixQR().topRows(r).triangularView<Eigen::Upper>();
-        Mat R_V = qr.compute(x.V()).matrixQR().topRows(r).triangularView<Eigen::Upper>();
+    Scalar NuclearNorm::operator()(const fmat_t &x) {
+        Index r   = x.rank();
+        Mat   R_U = qr.compute(x.U()).matrixQR().topRows(r).triangularView<Eigen::Upper>();
+        Mat   R_V = qr.compute(x.V()).matrixQR().topRows(r).triangularView<Eigen::Upper>();
 
         svd.compute(R_U * R_V.transpose());
         return mu * svd.singularValues().sum();
     }
 
-    Scalar NuclearNorm::operator()(const var_t& x){
-        const mat_wrapper_t* x_ptr = dynamic_cast<const mat_wrapper_t*>(&x);
-        const fmat_t* x_ptr_f = dynamic_cast<const fmat_t*>(&x);
+    Scalar NuclearNorm::operator()(const var_t &x) {
+        const mat_wrapper_t *x_ptr   = dynamic_cast<const mat_wrapper_t *>(&x);
+        const fmat_t *       x_ptr_f = dynamic_cast<const fmat_t *>(&x);
 
         OPTSUITE_ASSERT(x_ptr || x_ptr_f);
 
-        if (x_ptr)
-            return (*this)(x_ptr->mat());
+        if (x_ptr) return (*this)(x_ptr->mat());
         else
             return (*this)(*x_ptr_f);
+    }
+
+    void NuclearNormProx::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
+        using Eigen::DecompositionOptions;
+        svd.compute(x, DecompositionOptions::ComputeThinU | DecompositionOptions::ComputeThinV);
+        y = svd.matrixU() * ((svd.singularValues().array() - t * mu_).matrix().asDiagonal()) *
+            svd.matrixV().transpose();
     }
 
     void ShrinkageL1::operator()(const Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
@@ -271,9 +273,7 @@ namespace OptSuite { namespace Base {
         std::sort(indexes.begin(), indexes.end(),
                   [&x](SparseIndex a, SparseIndex b) { return std::fabs(x[a]) > std::fabs(x[b]); });
         y = x;
-        for(SparseIndex i = count; i < indexes.size(); i++){
-            y[indexes[i]] = 0;
-        }
+        for (SparseIndex i = count; i < indexes.size(); i++) { y[indexes[i]] = 0; }
     }
 
     template<typename dtype>

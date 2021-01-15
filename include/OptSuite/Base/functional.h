@@ -54,21 +54,22 @@ namespace OptSuite { namespace Base {
 
     template<typename dtype>
     class Proximal : public Functional {
-        public:
-            using mat_t = Eigen::Matrix<dtype, Dynamic, Dynamic>;
-            using mat_wrapper_t = MatWrapper<dtype>;
-            using spmat_wrapper_t = SpMatWrapper<dtype>;
-            using mat_array_t = MatArray_t<dtype>;
-            using var_t = Variable<dtype>;
-            ~Proximal() = default;
+    public:
+        using mat_t           = Eigen::Matrix<dtype, Dynamic, Dynamic>;
+        using mat_wrapper_t   = MatWrapper<dtype>;
+        using spmat_wrapper_t = SpMatWrapper<dtype>;
+        using mat_array_t     = MatArray_t<dtype>;
+        using var_t           = Variable<dtype>;
+        using fmat_t          = FactorizedMat<dtype>;
+        ~Proximal()           = default;
 
-            virtual void operator()(const Ref<const mat_t>, Scalar, Ref<mat_t>);
-            virtual void operator()(const mat_wrapper_t&, Scalar, mat_wrapper_t&);
-            virtual void operator()(const mat_array_t&, Scalar, mat_array_t&);
-            virtual void operator()(const var_t&, Scalar, const var_t&, Scalar, var_t&);
-            virtual bool is_identity() const { return false; }
-            virtual bool has_objective_cache() const { return false; }
-            virtual Scalar cached_objective() const { return 0_s; }
+        virtual void   operator()(const Ref<const mat_t>, Scalar, Ref<mat_t>);
+        virtual void   operator()(const mat_wrapper_t &, Scalar, mat_wrapper_t &);
+        virtual void   operator()(const mat_array_t &, Scalar, mat_array_t &);
+        virtual void   operator()(const var_t &, Scalar, const var_t &, Scalar, var_t &);
+        virtual bool   is_identity() const { return false; }
+        virtual bool   has_objective_cache() const { return false; }
+        virtual Scalar cached_objective() const { return 0_s; }
     };
 
     template<typename dtype>
@@ -119,16 +120,32 @@ namespace OptSuite { namespace Base {
     };
 
     class NuclearNorm : public Func<Scalar> {
-        Eigen::JacobiSVD<Mat> svd;
+        Eigen::JacobiSVD<Mat>     svd;
         Eigen::HouseholderQR<Mat> qr;
-        public:
-            inline NuclearNorm(Scalar mu_ = 1) : mu(mu_) {}
-            Scalar operator()(const Ref<const mat_t>);
-            Scalar operator()(const fmat_t&);
-            Scalar operator()(const var_t&);
+
+    public:
+        inline NuclearNorm(Scalar mu_ = 1) : mu(mu_) {}
+        Scalar operator()(const Ref<const mat_t>);
+        Scalar operator()(const fmat_t &);
+        Scalar operator()(const var_t &);
 
 
-            Scalar mu;
+        Scalar mu;
+    };
+
+    class NuclearNormProx : public Proximal<Scalar> {
+        Eigen::JacobiSVD<Mat>     svd;
+        Eigen::HouseholderQR<Mat> qr;
+        using typename Proximal<Scalar>::mat_t;
+        using typename Proximal<Scalar>::fmat_t;
+        using typename Proximal<Scalar>::var_t;
+
+    public:
+        explicit NuclearNormProx(Scalar mu) : mu_(mu) {}
+        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+
+    private:
+        Scalar mu_;
     };
 
     template<typename dtype>
