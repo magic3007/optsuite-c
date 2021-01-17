@@ -353,7 +353,7 @@ namespace OptSuite { namespace Base {
     Scalar AxmbNormSqr<dtype>::operator()(const Ref<const mat_t> x, Ref<mat_t> y, bool compute_grad){
         r.noalias() = A * x - b;
         Scalar fun = 0.5 * r.squaredNorm();
-        if (compute_grad) y.noalias() = A.transpose() * r;
+        if (compute_grad) y = A.transpose() * r;
         return fun;
     }
 
