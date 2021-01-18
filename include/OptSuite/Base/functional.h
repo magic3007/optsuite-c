@@ -320,8 +320,8 @@ namespace OptSuite { namespace Base {
 
     template<typename dtype = Scalar>
     class AxmbNormSqr : public FuncGrad<dtype> {
-        using typename FuncGrad<dtype>::mat_t;
         public:
+            using typename FuncGrad<dtype>::mat_t;
             AxmbNormSqr(const Ref<const mat_t>, const Ref<const mat_t>);
             ~AxmbNormSqr() = default;
 
@@ -337,11 +337,10 @@ namespace OptSuite { namespace Base {
 
     template<typename dtype = Scalar>
     class LogisticRegression : public FuncGrad<dtype> {
+    public:
         using typename FuncGrad<dtype>::mat_wrapper_t;
         using typename FuncGrad<dtype>::mat_t;
         using col_vec_t = Eigen::Matrix<dtype, Dynamic, 1>;
-
-    public:
         LogisticRegression(Ref<const mat_t>, Ref<const mat_t>);
         ~LogisticRegression() = default;
 

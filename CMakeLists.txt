@@ -160,6 +160,7 @@ else()
 endif()
 target_link_libraries(OptSuite PROPACK::Double -lgfortran)
 
+add_subdirectory(optpy)
 
 enable_testing()
 add_subdirectory(unittest)
