@@ -164,3 +164,4 @@ add_subdirectory(optpy)
 
 enable_testing()
 add_subdirectory(unittest)
+add_subdirectory(unittest_py)

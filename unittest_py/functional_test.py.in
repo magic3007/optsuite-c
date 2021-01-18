@@ -1,0 +1,31 @@
+import unittest
+import sys
+import numpy as np
+import numpy.linalg as LA
+
+sys.path.append("${CMAKE_CURRENT_BINARY_DIR}/..")
+from optpy.base import functional
+
+sys.path.pop()
+
+
+class MyTestCase(unittest.TestCase):
+    def test_AxmbNormSqr(self):
+        m, n, l = 512, 256, 2
+        A = np.asfortranarray(np.random.randn(m, n))
+        x = np.asfortranarray(np.random.randn(n, l))
+        b = np.asfortranarray(np.random.randn(m, l))
+        functor = functional.AxmbNormSqr_float64(A, b)
+        
+        temp = A @ x - b
+        obj_ground = 0.5 * (temp ** 2).sum()
+        grad_ground = A.T @ temp
+        
+        grad = np.asfortranarray(np.zeros_like(x))
+        obj = functor(x, grad, True)
+        np.testing.assert_allclose(obj, obj_ground)
+        np.testing.assert_allclose(grad, grad_ground)
+
+
+if __name__ == '__main__':
+    unittest.main()

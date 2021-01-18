@@ -1,0 +1,20 @@
+import unittest
+import sys
+
+sys.path.append("${CMAKE_CURRENT_BINARY_DIR}/..")
+from optpy import core_n
+
+sys.path.pop()
+
+
+class MyTestCase(unittest.TestCase):
+    def test_eps(self):
+        print(core_n.eps)
+    
+    def test_enum(self):
+        print(core_n.Verbosity.Info)
+        print(core_n.Verbosity.Debug)
+
+
+if __name__ == '__main__':
+    unittest.main()
