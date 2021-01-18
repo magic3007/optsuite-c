@@ -2,6 +2,7 @@ import unittest
 import sys
 import numpy as np
 import numpy.linalg as LA
+import timeit
 
 sys.path.append("${CMAKE_CURRENT_BINARY_DIR}/..")
 from optpy.base import functional
@@ -16,16 +17,39 @@ class MyTestCase(unittest.TestCase):
         x = np.asfortranarray(np.random.randn(n, l))
         b = np.asfortranarray(np.random.randn(m, l))
         functor = functional.AxmbNormSqr_float64(A, b)
-        
+
         temp = A @ x - b
         obj_ground = 0.5 * (temp ** 2).sum()
         grad_ground = A.T @ temp
-        
+
         grad = np.asfortranarray(np.zeros_like(x))
         obj = functor(x, grad, True)
         np.testing.assert_allclose(obj, obj_ground)
         np.testing.assert_allclose(grad, grad_ground)
 
 
+def TimeAxmbNormSqr():
+    m, n, l = 512, 256, 2
+    A = np.asfortranarray(np.random.randn(m, n))
+    x = np.asfortranarray(np.random.randn(n, l))
+    b = np.asfortranarray(np.random.randn(m, l))
+    functor = functional.AxmbNormSqr_float64(A, b)
+    
+    def numpy_impl():
+        temp = A @ x - b
+        obj_ground = 0.5 * (temp ** 2).sum()
+        grad_ground = A.T @ temp
+    
+    def pybind_impl():
+        grad = np.asfortranarray(np.zeros_like(x))
+        obj = functor(x, grad, True)
+    
+    t = timeit.timeit(numpy_impl, number=100)
+    print(f'Numpy average time: {t} sec')
+    t = timeit.timeit(pybind_impl, number=100)
+    print(f'Pybind average time: {t} sec')
+
+
 if __name__ == '__main__':
+    TimeAxmbNormSqr()
     unittest.main()
