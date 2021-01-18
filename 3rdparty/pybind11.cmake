@@ -1,3 +1,8 @@
+# The target Python version can be selected by setting
+# PYBIND11_PYTHON_VERSION
+# or an exact Python installation can be specified with
+# PYTHON_EXECUTABLE
+
 configure_file(pybind11.cmake.in pybind11-download/CMakeLists.txt)
 
 message(STATUS "Downloading pybind11")
