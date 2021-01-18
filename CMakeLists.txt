@@ -35,14 +35,6 @@ add_executable(block example/block.cpp)
 add_executable(opt example/opt.cpp)
 add_executable(fft example/fft.cpp)
 add_library(OptSuite ${SOURCE})
-add_library(pyoptsuite ${PROJECT_SOURCE_DIR}/src/Interface/pyoptsuite.cpp)
-
-
-include_directories(3rdparty/pybind11/include)
-include_directories(/usr/include/python3.8)
-
-target_link_libraries(pyoptsuite python3.8)
-target_link_libraries(pyoptsuite OptSuite)
 
 target_link_libraries(block Eigen3::Eigen OptSuite)
 target_link_libraries(opt Eigen3::Eigen OptSuite)
