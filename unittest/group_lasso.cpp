@@ -67,12 +67,12 @@ int main(int argc, char **argv) {
         options.ftol(1e-6);
         options.maxit(10000);
         options.min_lasting_iters(100);
-        options.step_size_strategy(Base::StepSizeStrategy::BBStepSize);
+        options.step_size_strategy(Base::StepSizeStrategy::Armijo);
         options.fixed(Base::FixedStepSize(t0));
         options.verbosity(Verbosity::Debug);
         Base::ArmijoStepSize armijo(t0, 0.6, 5);
         options.armijo(armijo);
-        Base::BBStepSize bb(t0, 1e-20, 1e20, 0.6, 1e-4, 0.85, 5, true);
+        Base::BBStepSize bb(t0, 1e-20, 1e20, 0.6, 1e-4, 0.85, 5, false);
         options.bb(bb);
         Base::ProximalGradSolver solver("Proximal Gradient", options);
 

@@ -153,9 +153,9 @@ protected:
 };
 
 struct SolverRecords {
-    Index               n_iters;
+    Index               n_iters = 0;
     std::vector<Scalar> obj_hist;
-    time_t              elapsed_time_us;
+    time_t              elapsed_time_us = 0;
 };
 
 class ProximalGradSolver : public SolverBase {

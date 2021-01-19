@@ -93,6 +93,8 @@ namespace OptSuite { namespace Base {
 
     Scalar L2Norm::operator()(const Ref<const mat_t> x) { return mu * x.norm(); }
 
+    Scalar LInfNorm::operator()(const Ref<const mat_t> x) {return mu * x.array().abs().maxCoeff();}
+
     Scalar L1_2Norm::operator()(const Ref<const mat_t> x) { return mu * x.rowwise().norm().sum(); }
 
     Scalar NuclearNorm::operator()(const Ref<const mat_t> x) {
@@ -135,6 +137,12 @@ namespace OptSuite { namespace Base {
     void ShrinkageL2::operator()(const Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
         Scalar lambda = 1 - t * mu / x.norm();
         y.array()     = x.array() * std::max(0_s, lambda);
+    }
+
+    void ShrinkageLInf::operator()(const Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
+        L1NormBallProj<Scalar> l1(t * mu_);
+        l1(x.array(), 1, y);
+        y.array() = x.array() - y.array();
     }
 
     void ShrinkageL0::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
@@ -239,52 +247,61 @@ namespace OptSuite { namespace Base {
 
 
     template<typename dtype>
-    void L1NormBallProj<dtype>::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
+    void L1NormBallProj<dtype>::operator()( Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
         OPTSUITE_ASSERT(x.cols() == 1);
         dtype l1_norm = x.template lpNorm<1>();
-        if (l1_norm <= t * mu_) {
+        if (l1_norm <= mu_) {
             y = x;
             return;
         }
         std::vector<SparseIndex> indexes(x.rows());
         std::iota(indexes.begin(), indexes.end(), 0);
         std::sort(indexes.begin(), indexes.end(),
-                  [&x](SparseIndex a, SparseIndex b) { return std::fabs(x[a]) > std::fabs(x[b]); });
+                  [&x](SparseIndex a, SparseIndex b) { return std::fabs(x.coeff(a, 0)) > std::fabs(x.coeff(b, 0)); });
         bool  root_found = false;
         dtype prefix_sum = 0, lambda;
         for (SparseIndex i = 0; i < indexes.size(); i++) {
             prefix_sum += indexes[i];
-            lambda = (prefix_sum - t * mu_) / (i + 1);
+            lambda = (prefix_sum - mu_) / (i + 1);
             if (lambda <= indexes[i] && (i + 1 == indexes.size() || indexes[i + 1] <= lambda)) {
                 root_found = true;
                 break;
             }
         }
         OPTSUITE_ASSERT(root_found);
-        y = x.array().sgn() * (x.array().abs() - lambda).max(0_s);
+        y = x.array().sign() * (x.array().abs() - lambda).max(0_s);
     }
 
+    template class L1NormBallProj<Scalar>;
+
     template<typename dtype>
-    void L0NormBallProj<dtype>::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
+    void L0NormBallProj<dtype>::operator()( Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
         OPTSUITE_ASSERT(x.cols() == 1);
-        SparseIndex              count = std::floor(t * mu_);
+        SparseIndex              count = std::floor(mu_);
         std::vector<SparseIndex> indexes(x.rows());
         std::iota(indexes.begin(), indexes.end(), 0);
         std::sort(indexes.begin(), indexes.end(),
-                  [&x](SparseIndex a, SparseIndex b) { return std::fabs(x[a]) > std::fabs(x[b]); });
+                  [&x](SparseIndex a, SparseIndex b) { return std::fabs(x.coeff(a, 0)) > std::fabs(x.coeff(b, 0)); });
         y = x;
-        for (SparseIndex i = count; i < indexes.size(); i++) { y[indexes[i]] = 0; }
+        for (SparseIndex i = count; i < indexes.size(); i++) { y.coeffRef(indexes[i],0) = 0; }
     }
 
+    template class L0NormBallProj<Scalar>;
+    
     template<typename dtype>
-    void L2NormBallProj<dtype>::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
-        y = x.array() * (t * mu_ / std::max(t * mu_, x.norm()));
+    void L2NormBallProj<dtype>::operator()( Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
+        y = x.array() * (mu_ / std::max(mu_, x.norm()));
     }
 
+    template class L2NormBallProj<Scalar>;
+
+
     template<typename dtype>
-    void LInfBallProj<dtype>::operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
-        y = x.array().sgn() * std::max(x.array().abs(), t * mu_);
+    void LInfBallProj<dtype>::operator()( Ref<const mat_t> x, Scalar t, Ref<mat_t> y) {
+        y = x.array().sign() * x.array().abs().max(mu_);
     }
+
+    template class LInfBallProj<Scalar>;
 
     template<typename dtype>
     Scalar FuncGrad<dtype>::operator()(const Ref<const mat_t> x) {

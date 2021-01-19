@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
         options.ftol(1e-5);
         options.maxit(1000000);
         options.min_lasting_iters(100);
-        options.step_size_strategy(Base::StepSizeStrategy::Armijo);
+        options.step_size_strategy(Base::StepSizeStrategy::Fixed);
         options.fixed(Base::FixedStepSize(t0));
         options.verbosity(Verbosity::Debug);
         Base::ArmijoStepSize armijo(t0, 0.6, 5);

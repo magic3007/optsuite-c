@@ -111,6 +111,14 @@ namespace OptSuite { namespace Base {
             Scalar mu;
     };
 
+    class LInfNorm : public Func<Scalar> {
+        public:
+            inline LInfNorm(Scalar mu_ = 1) : mu(mu_) {}
+            Scalar operator()(const Ref<const mat_t>);
+
+            Scalar mu;
+    };
+
     class L1_2Norm : public Func<Scalar> {
         public:
             inline L1_2Norm(Scalar mu_ = 1) : mu(mu_) {}
@@ -183,7 +191,7 @@ namespace OptSuite { namespace Base {
         explicit L1NormBallProj(Scalar mu) : mu_(mu) {}
         ~L1NormBallProj() = default;
 
-        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+        void operator()( Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
 
     private:
         Scalar mu_;
@@ -191,14 +199,18 @@ namespace OptSuite { namespace Base {
 
     template<typename dtype>
     class L0NormBallProj : public Proximal<dtype> {
+    public:
         using typename Proximal<dtype>::mat_t;
         explicit L0NormBallProj(Scalar mu) : mu_(mu) {}
         ~L0NormBallProj() = default;
-        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+        void operator()( Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
 
     private:
         Scalar mu_;
     };
+
+    
+
 
     template<typename dtype>
     class L2NormBallProj : public Proximal<dtype> {
@@ -208,7 +220,7 @@ namespace OptSuite { namespace Base {
         explicit L2NormBallProj(Scalar mu) : mu_(mu) {}
         ~L2NormBallProj() = default;
 
-        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+        void operator()( Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
 
     private:
         Scalar mu_;
@@ -222,7 +234,7 @@ namespace OptSuite { namespace Base {
     public:
         explicit LInfBallProj(Scalar mu) : mu_(mu) {}
         ~LInfBallProj() = default;
-        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+        void operator()( Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
 
     private:
         Scalar mu_;
@@ -251,6 +263,16 @@ namespace OptSuite { namespace Base {
     public:
         ShrinkageL0(Scalar mu = 1) : mu_(mu) {}
         ~ShrinkageL0() = default;
+        void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
+
+    private:
+        Scalar mu_;
+    };
+
+    class ShrinkageLInf : public Proximal<Scalar> {
+    public:
+        ShrinkageLInf(Scalar mu = 1) : mu_(mu) {}
+        ~ShrinkageLInf() = default;
         void operator()(Ref<const mat_t> x, Scalar t, Ref<mat_t> y);
 
     private:

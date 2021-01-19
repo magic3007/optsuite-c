@@ -53,7 +53,7 @@ int main(int argc, char **argv) {
         x0.mat() = randn(n, 1);
 
         auto                     func_f = Base::AxmbNormSqr<Scalar>(A.mat(), b.mat());
-        auto                     func_h = Base::L2Norm(mu);
+        auto                     func_h = Base::LInfNorm(mu);
         Base::SolverRecords      records;
         Base::MatWrapper<Scalar> result(x0);
         Base::MatWrapper<Scalar> grad_f(x0);
@@ -76,7 +76,7 @@ int main(int argc, char **argv) {
 
         for (Scalar t : {100, 10, 1}) {
             Utils::Global::logger_o.log_info("=======================\n");
-            auto                     h_prox = Base::ShrinkageL2(t * mu);
+            auto                     h_prox = Base::ShrinkageLInf(t * mu);
             solver(x0.mat(), func_f, func_h, h_prox, t, result.mat(), records);
             x0.mat() = result.mat();
         }

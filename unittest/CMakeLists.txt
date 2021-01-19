@@ -22,3 +22,31 @@ target_link_libraries(Axmb_Nuclear PRIVATE OptSuite)
 add_executable(Axmb_L2 Axmb_L2.cpp)
 target_include_directories(Axmb_L2 PRIVATE "${PROJECT_SOURCE_DIR}/include")
 target_link_libraries(Axmb_L2 PRIVATE OptSuite)
+
+add_executable(Axmb_Linf Axmb_Linf.cpp)
+target_include_directories(Axmb_Linf PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(Axmb_Linf PRIVATE OptSuite)
+
+add_executable(Axmb_L0NormProj Axmb_L0NormProj.cpp)
+target_include_directories(Axmb_L0NormProj PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(Axmb_L0NormProj PRIVATE OptSuite)
+
+add_executable(Axmb_L1NormProj Axmb_L1NormProj.cpp)
+target_include_directories(Axmb_L1NormProj PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(Axmb_L1NormProj PRIVATE OptSuite)
+
+add_executable(Axmb_L2NormProj Axmb_L2NormProj.cpp)
+target_include_directories(Axmb_L2NormProj PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(Axmb_L2NormProj PRIVATE OptSuite)
+
+add_executable(Axmb_LinfNormProj Axmb_LinfNormProj.cpp)
+target_include_directories(Axmb_LinfNormProj PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(Axmb_LinfNormProj PRIVATE OptSuite)
+
+add_executable(logistic_regression_l2 logistic_regression_l2.cpp)
+target_include_directories(logistic_regression_l2 PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(logistic_regression_l2 PRIVATE OptSuite)
+
+add_executable(logistic_regression_l1 logistic_regression_l1.cpp)
+target_include_directories(logistic_regression_l1 PRIVATE "${PROJECT_SOURCE_DIR}/include")
+target_link_libraries(logistic_regression_l1 PRIVATE OptSuite)

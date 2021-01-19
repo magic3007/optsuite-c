@@ -59,7 +59,6 @@ int main(int argc, char **argv) {
 
         auto                     func_f = Base::AxmbNormSqr<Scalar>(A.mat(), b.mat());
         auto                     func_h = Base::NuclearNorm(mu);
-        auto                     h_prox = Base::ShrinkageNuclear(mu);
         Base::SolverRecords      records;
         Base::MatWrapper<Scalar> result(x0);
         Base::MatWrapper<Scalar> grad_f(x0);
@@ -71,17 +70,18 @@ int main(int argc, char **argv) {
         options.ftol(1e-5);
         options.maxit(50000);
         options.min_lasting_iters(100);
-        options.step_size_strategy(Base::StepSizeStrategy::Fixed);
+        options.step_size_strategy(Base::StepSizeStrategy::Armijo);
         options.fixed(Base::FixedStepSize(t0));
         options.verbosity(Verbosity::Debug);
-        Base::ArmijoStepSize armijo(t0, 0.985, 5);
+        Base::ArmijoStepSize armijo(t0, 0.6, 5);
         options.armijo(armijo);
-        Base::BBStepSize bb(t0, 1e-20, 1e20, 0.985, 1e-4, 0.85, 5, true);
+        Base::BBStepSize bb(t0, 1e-20, 1e20, 0.6, 1e-4, 0.85, 5, true);
         options.bb(bb);
         Base::ProximalGradSolver solver("Proximal Gradient", options);
 
 
         for (Scalar t : {1}) {
+            auto                     h_prox = Base::ShrinkageNuclear(mu * t);
             Utils::Global::logger_o.log_info("=======================\n");
             solver(x0.mat(), func_f, func_h, h_prox, t, result.mat(), records);
             x0.mat() = result.mat();

@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <random>
+#include <cmath>
 #include <vector>
 
 
@@ -27,7 +28,7 @@ int main(int argc, char **argv) {
 
     Index                    m = 256, n = 512;
     Base::MatWrapper<Scalar> A, u, b;
-    Scalar                   mu = 1e-3;
+    Scalar                   mu = 50;
 
     rng(/* seed */ 114514);
 
@@ -41,8 +42,9 @@ int main(int argc, char **argv) {
         for (Index i = k; i < n; i++) { u.mat().coeffRef(i) = 0; }
     }
     b.mat()        = A.mat() * u.mat();
+    // Utils::Global::logger_o.log_info(u.mat().squaredNorm());
     auto err_exact = [&](const Base::MatWrapper<Scalar> &x) {
-        return u.squared_norm_diff(x) / (1 + u.mat().squaredNorm());
+        return sqrt(u.squared_norm_diff(x)) / (1 + sqrt(u.mat().squaredNorm()));
     };
     auto sparsity = [&](const Base::MatWrapper<Scalar> &x) {
         Scalar thre = 1e-6 * x.mat().array().abs().maxCoeff();
@@ -50,33 +52,36 @@ int main(int argc, char **argv) {
     };
     /* 0.5*|Ax-b|^2_2 + mu * |x|_1 */ {
         Base::MatWrapper<Scalar> x0;
-        x0.mat() = randn(n, 1);
+        x0.set_zero_like(u);
 
         auto                     func_f = Base::AxmbNormSqr<Scalar>(A.mat(), b.mat());
-        auto                     func_h = Base::L2Norm(mu);
+        auto                     func_h = Base::Zero<Scalar>();
         Base::SolverRecords      records;
         Base::MatWrapper<Scalar> result(x0);
         Base::MatWrapper<Scalar> grad_f(x0);
 
         func_f(x0.mat(), grad_f.mat(), true);
-        Scalar              t0 = x0.mat().norm() / grad_f.mat().norm() * 6e-1;
+        // Scalar              t0 = x0.mat().norm() / grad_f.mat().norm() * 6e-1;
+        Scalar t0 = 0.000001;
         Base::SolverOptions options{};
         options.ftol(1e-3);
-        options.maxit(50000);
-        options.min_lasting_iters(100);
-        options.step_size_strategy(Base::StepSizeStrategy::Fixed);
+        options.maxit(1000000);
+        options.min_lasting_iters(1);
+        options.step_size_strategy(Base::StepSizeStrategy::Armijo);
         options.fixed(Base::FixedStepSize(t0));
         options.verbosity(Verbosity::Debug);
-        Base::ArmijoStepSize armijo(0.001, 0.6, 5);
+        Base::ArmijoStepSize armijo(t0, 0.1, 10);
         options.armijo(armijo);
         Base::BBStepSize bb(t0, 1e-20, 1e20, 0.6, 1e-4, 0.85, 5, true);
         options.bb(bb);
+        Base::Deminishing2StepSize d2(1e-5, t0);
+        options.deminishing2(d2);
         Base::ProximalGradSolver solver("Proximal Gradient", options);
 
 
-        for (Scalar t : {100, 10, 1}) {
+        for (Scalar t : {1}) {
+            auto                     h_prox = Base::L1NormBallProj<Scalar>(mu);
             Utils::Global::logger_o.log_info("=======================\n");
-            auto                     h_prox = Base::ShrinkageL2(t * mu);
             solver(x0.mat(), func_f, func_h, h_prox, t, result.mat(), records);
             x0.mat() = result.mat();
         }
@@ -86,8 +91,8 @@ int main(int argc, char **argv) {
                                          std::setprecision(6), records.elapsed_time_us / 1e6);
         Utils::Global::logger_e.log_info(std::left, std::setw(10), ", Err-exact: ", std::left,
                                          std::scientific, err_exact(result));
-        Utils::Global::logger_e.log_info(std::left, std::setw(10), ", Sparsity: ", std::fixed,
-                                         std::setprecision(5), sparsity(result));
+        // Utils::Global::logger_e.log_info(std::left, std::setw(10), ", Sparsity: ", std::fixed,
+        //                                  std::setprecision(5), sparsity(result));
     }
     return 0;
 }
