@@ -351,8 +351,14 @@ namespace OptSuite { namespace Base {
 
     template<typename dtype>
     Scalar AxmbNormSqr<dtype>::operator()(const Ref<const mat_t> x, Ref<mat_t> y, bool compute_grad){
+        // Utils::Global::logger_e.log_info("AxmbNormSqr::Operator() Called!\n");
+        // mat_t temp;
+        // temp = A * x - b;
+        // Utils::Global::logger_e.log_info("AxmbNormSqr::Operator() Step0\n");
         r.noalias() = A * x - b;
+        // Utils::Global::logger_e.log_info("AxmbNormSqr::Operator() Step1\n");
         Scalar fun = 0.5 * r.squaredNorm();
+        // Utils::Global::logger_e.log_info("AxmbNormSqr::Operator(): fun =", fun, "\n");
         if (compute_grad) y = A.transpose() * r;
         return fun;
     }

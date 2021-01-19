@@ -53,20 +53,61 @@ void SolverOptions::verbosity(Verbosity v) { verbosity_ = v; }
 Scalar ArmijoStepSize::operator()(Ref<const Mat> x, const MatWrapper<Scalar> &grad_f, Scalar f_val,
                                   FuncGrad<Scalar> &func_f, Proximal<Scalar> &h_prox) const {
     auto func_gt = [&](Scalar t) {
-        Mat temp;
-        h_prox(x.array() - t * grad_f.mat().array(), t, temp);
-        return (x - temp) / t;
+        MatWrapper<Scalar> temp(x);
+        // h_prox(x.array() - t * grad_f.mat().array(), t, temp);
+        h_prox(x - t * grad_f.mat(), t, temp.mat());
+        Mat gt = (x - temp.mat()) / t;
+        return gt;
     };
     Scalar t = t0_;
     for (Index i = 0; i < max_line_search_iters_; i++) {
-        MatWrapper<Scalar> gt  = static_cast<MatWrapper<Scalar>>(func_gt(t));
-        Scalar             lhs = func_f(x.array() - t * gt.mat().array());
+        MatWrapper<Scalar> gt(x);
+        gt  = MatWrapper<Scalar>(func_gt(t));
+        Scalar             lhs = func_f(x - t * gt.mat()); 
         Scalar             rhs = f_val + t * grad_f.dot(gt) + 0.5 * t * gt.mat().squaredNorm();
         if (lhs <= rhs) { break; }
         t *= shrink_scale_;
     }
     return t;
 }
+
+Scalar BBStepSize::operator()(Ref<const Mat> x, const MatWrapper<Scalar> &grad_f, Scalar f_val,
+                                FuncGrad<Scalar> &func_f, Func<Scalar> &func_h, Proximal<Scalar> &h_prox) {
+    auto func_xbar = [&](Scalar t) {
+        MatWrapper<Scalar> temp(x);
+        h_prox(x - t * grad_f.mat(), t, temp.mat());
+        return temp;
+    };
+    if (C == std::numeric_limits<Scalar>::infinity())
+        C = f_val;
+    Mat x_new(x);
+    for (Index i = 0; i < max_line_search_iters_; i++) {
+        MatWrapper<Scalar> xbar(x);
+                           xbar = MatWrapper<Scalar>(func_xbar(alpha_));
+        MatWrapper<Scalar>    d(xbar.mat() - x);
+        Scalar            delta = grad_f.dot(d) + func_h(xbar) - func_h(x);
+                          x_new = x + alpha_ * d.mat();
+        Scalar             lhs  = func_f(x_new) + func_h(x_new);
+        Scalar             rhs  = C + sigma_ * alpha_ * delta; 
+        if (lhs < rhs) break;
+        alpha_ *= shrink_scale_;
+    }
+    Scalar ret = alpha_;
+    MatWrapper<Scalar> grad_f_new(x_new);
+    Scalar f_val_new = func_f(x_new, grad_f_new.mat(), true);
+    MatWrapper<Scalar> s(x_new - x);
+    MatWrapper<Scalar> y(grad_f_new.mat() - grad_f.mat());
+    C = (eta_ * Q * C + f_val_new) / (eta_ * Q + 1);
+    Q = eta_ * Q + 1;
+    if (stepType)
+        alpha_ = (s.dot(y) == 0 ? alpha0_ : s.dot(s) / s.dot(y));
+    else 
+        alpha_ = s.dot(y) / y.dot(y);
+    // stepType ^= 1;
+    alpha_ = std::min(alpha_max_, std::max(alpha_min_, alpha_));
+    return ret;
+}
+
 void ProximalGradSolver::operator()(Ref<const Mat> x0, FuncGrad<Scalar> &func_f,
                                     Func<Scalar> &func_h, Proximal<Scalar> &h_prox, Scalar t,
                                     Ref<Mat> result, SolverRecords &records) {
@@ -99,6 +140,8 @@ void ProximalGradSolver::operator()(Ref<const Mat> x0, FuncGrad<Scalar> &func_f,
                 return this->options_.deminishing2()(i);
             case StepSizeStrategy::Armijo:
                 return this->options_.armijo()(x, grad_f, f_val, func_f, h_prox);
+            case StepSizeStrategy::BBStepSize:
+                return this->options_.bb()(x, grad_f, f_val, func_f, func_h, h_prox);
             default:
                 OPTSUITE_ASSERT(false);
         }
@@ -116,11 +159,11 @@ void ProximalGradSolver::operator()(Ref<const Mat> x0, FuncGrad<Scalar> &func_f,
         obj_hist.push_back(obj_val);
         if (stop_checker()) { break; }
         Scalar step_size = get_step_size();
-        h_prox(x.array() - step_size * grad_f.mat().array(), /* t */ t, x);
+        h_prox(x.array() - step_size * grad_f.mat().array(), /* t */ step_size, x);
     }
     result                  = x;
-    records.elapsed_time_us = stopwatch.elapsed<stopwatch::mus>();
-    records.n_iters         = i;
+    records.elapsed_time_us += stopwatch.elapsed<stopwatch::mus>();
+    records.n_iters         += i;
     records.obj_hist        = std::move(obj_hist);
 }
 }   // namespace Base
