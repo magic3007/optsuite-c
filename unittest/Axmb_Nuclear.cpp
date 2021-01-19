@@ -28,7 +28,7 @@ using namespace OptSuite::LinAlg;
 int main(int argc, char **argv) {
 
 
-    Index                    m = 96, n = 96, l = 96;
+    Index                    m = 256, n = 512, l = 16;
     Base::MatWrapper<Scalar> A, u, b;
     Scalar                   mu = 1e-3;
 

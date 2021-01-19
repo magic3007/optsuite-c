@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
 
         func_f(x0.mat(), grad_f.mat(), true);
         // Scalar              t0 = x0.mat().norm() / grad_f.mat().norm() * 6e-1;
-        Scalar t0 = 0.001;
+        Scalar t0 = 0.0001;
         Base::SolverOptions options{};
         options.ftol(1e-5);
         options.maxit(1000000);
