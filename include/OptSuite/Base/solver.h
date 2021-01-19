@@ -81,6 +81,30 @@ private:
     Index  max_line_search_iters_;
 };
 
+class BBStepSize {
+public:
+    BBStepSize() = default;
+    BBStepSize(Scalar alpha, Scalar alpha_min, Scalar alpha_max, 
+               Scalar shrink_scale, Scalar sigma, Scalar eta,
+               Scalar max_line_search_iters, bool steptype = true)
+        : alpha_(alpha), alpha0_(alpha), alpha_min_(alpha_min), alpha_max_(alpha_max), shrink_scale_(shrink_scale),
+          sigma_(sigma), eta_(eta), max_line_search_iters_(max_line_search_iters), stepType(steptype) {}
+    Scalar operator()(Ref<const Mat> x, const MatWrapper<Scalar> &grad_f, Scalar f_val,
+                      FuncGrad<Scalar> &func_f, Func<Scalar> &func_h, Proximal<Scalar> &h_prox);
+private:
+    Scalar alpha_;
+    Scalar alpha0_;
+    Scalar alpha_min_;
+    Scalar alpha_max_;
+    Scalar shrink_scale_;
+    Scalar sigma_;
+    Scalar eta_;                                                   
+    Index  max_line_search_iters_;
+    Scalar C = std::numeric_limits<Scalar>::infinity();
+    Scalar Q = 1;
+    bool   stepType;
+};
+
 class SolverOptions {
 
 public:
@@ -95,6 +119,7 @@ public:
     const Deminishing2StepSize &deminishing2() const { return deminishing2_; }
     const FixedStepSize &       fixed() const { return fixed_; }
     const StepSizeStrategy &    step_size_strategy() { return step_size_strategy_; }
+    BBStepSize &                bb() {return bb_;}
     Verbosity                   verbosity();
 
     // setter
@@ -110,6 +135,7 @@ public:
     void armijo(const ArmijoStepSize &armijo) { armijo_ = armijo; }
     void deminishing2(const Deminishing2StepSize &deminishing2) { deminishing2_ = deminishing2; }
     void fixed(const FixedStepSize &fixed) { fixed_ = fixed; }
+    void bb(BBStepSize &bb) { bb_ = bb; }
 
 protected:
     Scalar ftol_;   ///< The objective value variation tolerance
@@ -123,12 +149,13 @@ protected:
     ArmijoStepSize       armijo_;
     Deminishing2StepSize deminishing2_;
     FixedStepSize        fixed_;
+    BBStepSize           bb_;
 };
 
 struct SolverRecords {
-    Index               n_iters;
+    Index               n_iters = 0;
     std::vector<Scalar> obj_hist;
-    time_t              elapsed_time_us;
+    time_t              elapsed_time_us = 0;
 
     Index  get_n_iters() { return n_iters; }
     time_t get_elapsed_time_us() { return elapsed_time_us; }

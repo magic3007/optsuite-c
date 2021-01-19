@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
 
     Index                    m = 256, n = 512;
     Base::MatWrapper<Scalar> A, u, b;
-    Scalar                   mu = 1e-3;
+    Scalar                   mu = 1e-2;
 
     rng(/* seed */ 114514);
 
@@ -50,28 +50,35 @@ int main(int argc, char **argv) {
     };
     /* 0.5*|Ax-b|^2_2 + mu * |x|_1 */ {
         Base::MatWrapper<Scalar> x0;
-        x0.mat() = randn(n, 1);
+        x0.set_zero_like(u);
 
         auto                     func_f = Base::AxmbNormSqr<Scalar>(A.mat(), b.mat());
         auto                     func_h = Base::L1Norm(mu);
-        auto                     h_prox = Base::ShrinkageL1(mu);
         Base::SolverRecords      records;
         Base::MatWrapper<Scalar> result(x0);
         Base::MatWrapper<Scalar> grad_f(x0);
 
         func_f(x0.mat(), grad_f.mat(), true);
-        Scalar              t0 = x0.mat().norm() / grad_f.mat().norm() * 6e-1;
+        // Scalar              t0 = x0.mat().norm() / grad_f.mat().norm() * 6e-1;
+        Scalar t0 = 0.001;
         Base::SolverOptions options{};
         options.ftol(1e-5);
-        options.maxit(10000);
+        options.maxit(1000000);
         options.min_lasting_iters(100);
         options.step_size_strategy(Base::StepSizeStrategy::Fixed);
         options.fixed(Base::FixedStepSize(t0));
         options.verbosity(Verbosity::Debug);
+        Base::ArmijoStepSize armijo(t0, 0.6, 5);
+        options.armijo(armijo);
+        Base::BBStepSize bb(t0, 1e-20, 1e20, 0.6, 1e-4, 0.85, 5, true);
+        options.bb(bb);
+        Base::Deminishing2StepSize d2(1e-5, t0);
+        options.deminishing2(d2);
         Base::ProximalGradSolver solver("Proximal Gradient", options);
 
 
-        for (Scalar t : {1}) {
+        for (Scalar t : {100, 10, 1}) {
+            auto                     h_prox = Base::ShrinkageL1(mu * t);
             Utils::Global::logger_o.log_info("=======================\n");
             solver(x0.mat(), func_f, func_h, h_prox, t, result.mat(), records);
             x0.mat() = result.mat();
