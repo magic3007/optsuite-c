@@ -8,3 +8,5 @@ add_test(NAME py_core_n_test
 configure_file(functional_test.py.in functional_test.py)
 add_test(NAME py_functional_test
         COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/functional_test.py)
+
+configure_file(mnist.py.in mnist.py)

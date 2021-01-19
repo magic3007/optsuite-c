@@ -1,0 +1,118 @@
+import sys
+import numpy as np
+import pandas as pd
+import numpy.linalg as LA
+import os
+
+sys.path.append("${CMAKE_CURRENT_BINARY_DIR}/..")
+from optpy.base import functional
+from optpy.base import solver
+from optpy import core_n
+
+sys.path.pop()
+
+train_data_path = "${CMAKE_CURRENT_SOURCE_DIR}/mnist_train.csv"
+test_data_path = "${CMAKE_CURRENT_SOURCE_DIR}/mnist_test.csv"
+
+
+def normalization(data):
+    _range = np.max(data) - np.min(data)
+    return (data - np.min(data)) / _range
+
+
+def standardization(data):
+    mu = np.mean(data, axis=0)
+    sigma = np.std(data, axis=0)
+    with np.errstate(divide='ignore', invalid='ignore'):
+        return np.nan_to_num((data - mu) / sigma, nan=0)
+
+
+def format_data(data_path):
+    # one-vs-rest
+    train_x = pd.read_csv(data_path)
+    train_x = train_x[: 1000]
+    train_y = train_x['label'].values
+    m = train_y.size
+    b = np.where(train_y == 0, 1, -1).reshape(m, 1)
+    train_x.drop(['label'], axis=1, inplace=True)
+    train_x = train_x.values
+    _, n = train_x.shape
+    A = train_x.T
+    
+    A = np.asfortranarray(A).astype(np.float64)
+    b = np.asfortranarray(b).astype(np.float64)
+    A = normalization(A)
+    A = standardization(A.T).T
+    return A, b, n, m
+
+
+def main():
+    np.random.seed(114514)
+    train_A, train_b, n, m = format_data(train_data_path)
+    test_A, test_b, n, m = format_data(test_data_path)
+    print(np.where(train_b == 1, 1, 0).sum() / train_b.size)
+    print(np.where(test_b == 1, 1, 0).sum() / test_b.size)
+    
+    def acc(x, exact_x):
+        binary_x = np.where(x > 0, 1, -1)
+        return np.where(binary_x == exact_x, 1, 0).sum() / exact_x.size
+    
+    def recall(x, exact_x):
+        binary_x = np.where(x > 0, 1, -1)
+        return np.where((binary_x == exact_x) & (binary_x == 1), 1, 0).sum() / np.where(binary_x == 1, 1, 0).sum()
+    
+    def pre(x, exact_x):
+        binary_x = np.where(x > 0, 1, -1)
+        return np.where((binary_x == exact_x) & (exact_x == 1), 1, 0).sum() / np.where(exact_x == 1, 1, 0).sum()
+    
+    def err_exact(x, exact_x):
+        return LA.norm(exact_x - x) / (1 + LA.norm(exact_x))
+    
+    # m, n = 3, 100
+    # train_A = np.asfortranarray(np.random.randn(n, m))
+    # train_b = np.asfortranarray(np.random.randn(m, 1))
+    # train_b = np.where(train_b > 0, 1, -1)
+    # test_A = np.asfortranarray(np.random.randn(n, m))
+    # test_b = np.asfortranarray(np.random.randn(m, 1))
+    # test_b = np.where(test_b > 0, 1, -1)
+    
+    x0 = np.asfortranarray(np.random.randn(n, 1)).astype(np.float64)
+    mu = 1e-3
+    
+    func_f = functional.LogisticRegression_float64(train_A, train_b)
+    func_h = functional.L1Norm_float64(mu)
+    h_prox = functional.ShrinkageL1_float64(mu)
+    
+    result = np.zeros_like(x0, order='F', dtype=np.float64)
+    grad_f = np.zeros_like(x0, order='F', dtype=np.float64)
+    
+    options = solver.SolverOptions()
+    options.ftol = 1e-3
+    options.maxit = 200
+    options.min_lasting_iters = 10
+    options.step_size_strategy = solver.StepSizeStrategy.Fixed
+    options.verbosity = core_n.Verbosity.Debug
+    options.fixed = solver.FixedStepSize(1)
+    solver_inst = solver.ProximalGradSolver("Proximal Gradient", options)
+    records = solver.SolverRecords()
+    
+    for t in [10, 1, 1e-1, 1e-2]:
+        print("===========================")
+        solver_inst(x0, func_f, func_h, h_prox, t, result, records)
+        train_pred = train_A.T @ result
+        test_pred = test_A.T @ result
+        print("training set: err-exact: {}, acc: {}, pre: {}, recall: {}".format(
+            err_exact(train_pred, train_b),
+            acc(train_pred, train_b),
+            pre(train_pred, train_b),
+            recall(train_pred, train_b)))
+        print("testing set: err-exact: {}, acc: {}, pre: {}, recall: {}".format(
+            err_exact(test_pred, test_b),
+            acc(test_pred, test_b),
+            pre(test_pred, test_b),
+            recall(test_pred, test_b)))
+        x0 = result
+
+
+if __name__ == '__main__':
+    main()
