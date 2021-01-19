@@ -129,6 +129,9 @@ struct SolverRecords {
     Index               n_iters;
     std::vector<Scalar> obj_hist;
     time_t              elapsed_time_us;
+
+    Index  get_n_iters() { return n_iters; }
+    time_t get_elapsed_time_us() { return elapsed_time_us; }
 };
 
 class ProximalGradSolver : public SolverBase {
