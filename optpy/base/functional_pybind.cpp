@@ -74,6 +74,14 @@ class PyShrinkageL1 : public ShrinkageL1 {
     }
 };
 
+class PyL1Norm : public L1Norm {
+    using L1Norm::L1Norm;
+    using typename L1Norm::mat_t;
+    Scalar operator()(const Ref<const mat_t> x) override {
+        PYBIND11_OVERRIDE_NAME(Scalar, L1Norm, "__call__", operator(), x);
+    }
+};
+
 template<typename dtype>
 static void DeclareFunc(py::module &m, const std::string &type_str) {
     using Class              = Func<dtype>;
@@ -115,10 +123,10 @@ static void DeclareFuncGrad(py::module &m, const std::string &type_str) {
 template<typename dtype>
 static void DeclareAxmbNormSqr(py::module &m, const std::string &type_str) {
     using Class              = AxmbNormSqr<dtype>;
-    using PyClass            = PyAxmbNormSqr<dtype>;
+    using ParentClass        = FuncGrad<dtype>;
     using mat_t              = typename Class::mat_t;
     std::string pyclass_name = "AxmbNormSqr_" + type_str;
-    py::class_<Class, PyClass>(m, pyclass_name.c_str())
+    py::class_<Class, ParentClass>(m, pyclass_name.c_str())
             .def(py::init<const Ref<const mat_t>, const Ref<const mat_t>>())
             .def("__call__",
                  overload_cast_<const Ref<const mat_t>, Ref<mat_t>, bool>()(&Class::operator()));
@@ -127,10 +135,10 @@ static void DeclareAxmbNormSqr(py::module &m, const std::string &type_str) {
 template<typename dtype>
 static void DeclareLogisticRegression(py::module &m, const std::string &type_str) {
     using Class              = LogisticRegression<dtype>;
-    using PyClass            = PyLogisticRegression<dtype>;
+    using ParentClass        = FuncGrad<dtype>;
     using mat_t              = typename Class::mat_t;
     std::string pyclass_name = "LogisticRegression_" + type_str;
-    py::class_<Class, PyClass>(m, pyclass_name.c_str())
+    py::class_<Class, ParentClass>(m, pyclass_name.c_str())
             .def(py::init<Ref<const mat_t>, Ref<const mat_t>>())
             .def("__call__",
                  overload_cast_<Ref<const mat_t>, Ref<mat_t>, bool>()(&Class::operator()));
@@ -138,13 +146,23 @@ static void DeclareLogisticRegression(py::module &m, const std::string &type_str
 
 static void DeclareShrinkageL1(py::module &m, const std::string &type_str) {
     using Class              = ShrinkageL1;
-    using PyClass            = PyShrinkageL1;
+    using ParentClass        = Proximal<Scalar>;
     using mat_t              = typename Class::mat_t;
     std::string pyclass_name = "ShrinkageL1_" + type_str;
-    py::class_<Class, PyClass>(m, pyclass_name.c_str())
+    py::class_<Class, ParentClass>(m, pyclass_name.c_str())
             .def(py::init<Scalar>())
             .def("__call__",
                  overload_cast_<const Ref<const mat_t>, Scalar, Ref<mat_t>>()(&Class::operator()));
+}
+
+static void DeclareL1Norm(py::module &m, const std::string &type_str) {
+    using Class              = L1Norm;
+    using ParentClass        = Func<Scalar>;
+    using mat_t              = typename Class::mat_t;
+    std::string pyclass_name = "L1Norm_" + type_str;
+    py::class_<Class, ParentClass>(m, pyclass_name.c_str())
+            .def(py::init<Scalar>())
+            .def("__call__", overload_cast_<const Ref<const mat_t>>()(&Class::operator()));
 }
 
 PYBIND11_MODULE(functional, m) {
@@ -163,4 +181,6 @@ PYBIND11_MODULE(functional, m) {
     DeclareLogisticRegression<double>(m, "float64");
 
     DeclareShrinkageL1(m, "float64");
+
+    DeclareL1Norm(m, "float64");
 }

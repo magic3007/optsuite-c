@@ -384,11 +384,11 @@ namespace OptSuite { namespace Base {
                                                  bool compute_grad) {
         OPTSUITE_ASSERT(x.cols() == 1);
         OPTSUITE_ASSERT(x.rows() == A_.rows());
-        col_vec_t t   = mbA_.transpose() * x;
-        col_vec_t p   = t.array().exp();
-        col_vec_t q   = p.array() + 1;
-        col_vec_t r   = q.array().log();
-        Scalar    fun = r.mean();
+        col_vec_t t     = mbA_.transpose() * x;
+        col_vec_t p     = t.array().exp();
+        col_vec_t q     = p.array() + 1;
+        col_vec_t r     = q.array().log();
+        Scalar    fun   = r.mean();
         if (compute_grad) {
             col_vec_t s = p.array() / q.array();
             mat_t     u = mbA_.array().rowwise() * s.transpose().array();

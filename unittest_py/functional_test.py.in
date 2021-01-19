@@ -3,6 +3,7 @@ import sys
 import numpy as np
 import numpy.linalg as LA
 import timeit
+import torch
 
 sys.path.append("${CMAKE_CURRENT_BINARY_DIR}/..")
 from optpy.base import functional
@@ -13,6 +14,7 @@ sys.path.pop()
 class MyTestCase(unittest.TestCase):
     def test_AxmbNormSqr(self):
         m, n, l = 512, 256, 2
+        np.random.seed(114514)
         A = np.asfortranarray(np.random.randn(m, n))
         x = np.asfortranarray(np.random.randn(n, l))
         b = np.asfortranarray(np.random.randn(m, l))
@@ -24,6 +26,28 @@ class MyTestCase(unittest.TestCase):
 
         grad = np.asfortranarray(np.zeros_like(x))
         obj = functor(x, grad, True)
+        np.testing.assert_allclose(obj, obj_ground)
+        np.testing.assert_allclose(grad, grad_ground)
+
+    def test_LogisticRegression(self):
+        n, m = 256, 512
+        np.random.seed(114514)
+        A = np.asfortranarray(np.random.randn(n, m))
+        b = np.asfortranarray(np.random.randn(m, 1))
+        x = np.asfortranarray(np.random.randn(n, 1))
+        functor = functional.LogisticRegression_float64(A, b)
+        grad = np.zeros_like(x, order='F')
+        obj = functor(x, grad, True)
+        
+        A_ = torch.from_numpy(A)
+        b_ = torch.from_numpy(b)
+        x_ = torch.from_numpy(x)
+        x_.requires_grad = True
+        obj_torch = torch.matmul((A_ * (- b_.transpose(0, 1))).transpose(0, 1), x_).exp().log1p().mean()
+        obj_torch.backward()
+        obj_ground = obj_torch.detach().numpy()
+        grad_ground = x_.grad.detach().numpy()
+
         np.testing.assert_allclose(obj, obj_ground)
         np.testing.assert_allclose(grad, grad_ground)
 
@@ -51,5 +75,5 @@ def TimeAxmbNormSqr():
 
 
 if __name__ == '__main__':
-    TimeAxmbNormSqr()
+    # TimeAxmbNormSqr()
     unittest.main()
